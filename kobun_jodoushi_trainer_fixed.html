@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>古文助動詞トレーナー</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;color:#222;background:#f4f6fa}
+body{max-width:850px;margin:0 auto;padding:18px}
+header,.card{background:white;border-radius:16px;padding:20px;margin:14px 0;box-shadow:0 3px 14px #0000000c}
+h1{font-size:1.5rem;margin:0 0 8px}.muted{color:#666;font-size:.93rem}
+button,select{font:inherit;padding:10px 12px;border-radius:9px;border:1px solid #c9ced8;background:#fff}
+button{cursor:pointer;background:#244b87;color:white;border:0;font-weight:650}button.secondary{background:#e9edf5;color:#223}
+.question{font-size:1.15rem;line-height:1.9}.target{font-weight:800;text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:4px}
+label{display:block;font-size:.9rem;margin:12px 0 5px}select{width:100%;box-sizing:border-box}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.result{padding:12px;border-radius:10px;margin-top:12px;background:#f1f4f8}
+.correct{color:#14723c;font-weight:700}.wrong{color:#a12c2c;font-weight:700}.hidden{display:none}
+@media(max-width:600px){.grid{grid-template-columns:1fr}body{padding:10px}.card,header{padding:15px}}
+</style>
+</head>
+<body>
+<header>
+<h1>古文助動詞トレーナー</h1>
+<div class="muted">例文中の助動詞について「意味・活用形・接続」を練習。20問をランダム出題します。</div>
+<div class="row" style="margin-top:14px">
+<button id="start" type="button">20問スタート / 別の20問</button>
+<button id="showAll" class="secondary" type="button">解答一覧</button>
+</div>
+<p id="progress" class="muted">スタートを押してください。</p>
+</header>
+<main id="quiz"></main><section id="summary" class="card hidden"></section><section id="allAnswers" class="card hidden"></section>
+<script>
+"use strict";
+const data = [
+["花の色はうつりにけりな、","けり","いたづらにわが身世にふるながめせしまに。","過去・詠嘆","終止形","連用形接続"],
+["昔、男あり","けり","。","過去","終止形","連用形接続"],
+["いづれの御時にか、女御、更衣あまたさぶらひ","ける","中に","過去","連体形","連用形接続"],
+["人も","見む","と思ひて、花を折る。","意志","終止形","未然形接続"],
+["明日は雨降る","べし","。","推量","終止形","終止形接続（ラ変は連体形）"],
+["人に知ら","るる","ことなく、ひそかに出で立つ。","自発・可能・受身・尊敬（文脈で判断）","連体形","未然形接続"],
+["このこと、忘れ","ず","。","打消","終止形","未然形接続"],
+["まだ夜も明け","ぬ","に、出で立ちぬ。","打消","連体形","未然形接続"],
+["花咲き","ぬ","。","完了","終止形","連用形接続"],
+["門を閉ぢ","たり","。","存続・完了","終止形","連用形接続"],
+["いざ、都へ帰ら","む","。","意志","終止形","未然形接続"],
+["風吹けば沖つ白波たつた山夜半にや君がひとり越ゆ","らむ","。","現在推量・原因推量","終止形","終止形接続（ラ変は連体形）"],
+["かくあら","まほし","。","願望","終止形","未然形接続"],
+["この人は都に住む","なり","。","伝聞・推定","終止形","終止形接続（ラ変は連体形）"],
+["これは夢","なり","。","断定","終止形","体言・連体形接続"],
+["人々、集まり","けむ","。","過去推量","終止形","連用形接続"],
+["人に笑は","れ","けり。","受身","連用形","未然形接続"],
+["いかで都へ帰ら","まし","。","反実仮想・ためらいの意志・実現不可能な願望","終止形","未然形接続"],
+["雨降る","めり","。","推定","終止形","終止形接続（ラ変は連体形）"],
+["この山を越え","まじ","。","打消推量・打消意志など","終止形","終止形接続（ラ変は連体形）"],
+["都へ行か","ざり","けり。","打消","連用形","未然形接続（ずの活用）"],
+["昨日見","し","人にまた会ふ。","過去","連体形","連用形接続"],
+["昔、ここに住み","き","。","過去（直接経験）","終止形","連用形接続"],
+["この花を見","つ","。","完了・強意","終止形","連用形接続"],
+["いかに悲しから","む","。","推量","終止形","未然形接続"]
+].map((a,i)=>({id:i,pre:a[0],t:a[1],post:a[2],m:a[3],f:a[4],c:a[5]}));
+const meaningPool=["過去","過去（直接経験）","詠嘆","過去・詠嘆","完了","存続・完了","強意","打消","意志","推量","現在推量・原因推量","過去推量","可能","自発・可能・受身・尊敬（文脈で判断）","受身","尊敬","当然","推定","伝聞・推定","断定","願望","打消推量・打消意志など","反実仮想・ためらいの意志・実現不可能な願望"];
+const formPool=["未然形","連用形","終止形","連体形","已然形","命令形"];
+const connectionPool=["未然形接続","連用形接続","終止形接続（ラ変は連体形）","体言・連体形接続","未然形接続（ずの活用）"];
+let questions=[],index=0,score=0,answered=false;
+const $=id=>document.getElementById(id);
+function shuffle(a){let b=[...a];for(let i=b.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function makeOptions(correct,pool){return shuffle([...new Set([correct,...pool])]).slice(0,6);}
+function selectHTML(id,opts){return `<select id="${id}"><option value="">選択してください</option>${opts.map(x=>`<option value="${x.replaceAll('"','&quot;')}">${x}</option>`).join("")}</select>`;}
+function start(){
+ questions=shuffle(data).slice(0,20);index=0;score=0;
+ $("summary").classList.add("hidden");$("allAnswers").classList.add("hidden");render();
+}
+function render(){
+ if(index>=questions.length){
+  $("quiz").innerHTML="";$("progress").textContent="終了";
+  $("summary").classList.remove("hidden");
+  $("summary").innerHTML=`<h2>結果：${score} / 60 点</h2><p>各問、意味・活用形・接続の3項目で採点しました。</p><button id="retry" type="button">別の20問に挑戦</button>`;
+  $("retry").addEventListener("click",start);return;
+ }
+ const q=questions[index];answered=false;
+ $("progress").textContent=`第 ${index+1} 問 / 20問　｜　ここまで ${score} 点`;
+ $("quiz").innerHTML=`<section class="card"><div class="muted">次の例文の下線部について答えてください。</div><p class="question">${q.pre}<span class="target">${q.t}</span>${q.post}</p>
+ <div class="grid"><div><label>① 意味</label>${selectHTML("m",makeOptions(q.m,meaningPool))}</div><div><label>② 活用形</label>${selectHTML("f",makeOptions(q.f,formPool))}</div><div><label>③ 接続</label>${selectHTML("c",makeOptions(q.c,connectionPool))}</div></div>
+ <div class="row" style="margin-top:16px"><button id="check" type="button">答え合わせ</button><button id="next" class="secondary hidden" type="button">次の問題</button></div><div id="feedback" class="result hidden"></div></section>`;
+ $("check").addEventListener("click",check);$("next").addEventListener("click",()=>{index++;render();});
+}
+function check(){
+ if(answered)return;const q=questions[index];let n=0,out="";
+ for(const [id,ans,label] of [["m",q.m,"意味"],["f",q.f,"活用形"],["c",q.c,"接続"]]){
+  const ok=$(id).value===ans;if(ok)n++;
+  out+=`<p><b>${label}：</b><span class="${ok?"correct":"wrong"}">${ok?"正解":"不正解"}</span>　正解：${ans}</p>`;
+ }
+ score+=n;$("feedback").classList.remove("hidden");$("feedback").innerHTML=`<b>${n}/3 点</b>${out}<p class="muted">助動詞の意味は文脈によって変わる場合があります。</p>`;
+ $("check").classList.add("hidden");$("next").classList.remove("hidden");answered=true;
+}
+$("start").addEventListener("click",start);
+$("showAll").addEventListener("click",()=>{
+ const box=$("allAnswers");box.classList.toggle("hidden");
+ box.innerHTML="<h2>例文・解答一覧</h2>"+data.map((q,i)=>`<p><b>${i+1}.</b> ${q.pre}<u>${q.t}</u>${q.post}<br>意味：${q.m} ／ 活用形：${q.f} ／ 接続：${q.c}</p>`).join("");
+});
+</script>
+</body>
+</html>
